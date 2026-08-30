@@ -19,7 +19,11 @@ sudo journalctl -u zapret.service -b --no-pager | tail -25
 echo; echo "================ 5. FIREWALL ================"
 sudo nft list table inet zapret 2>&1 | head -40
 echo "--- başka kim kural koymuş (ufw/docker/başka bypass) ---"
-sudo nft list ruleset 2>/dev/null | grep -E '^table|NFQUEUE|queue num' | head -30
+# DİKKAT: nft çıktısında ifade "queue flags bypass to 200" olabilir, "queue num" DEĞİL.
+# Sadece "queue num" araman yanlış negatif verir — kural var sanırsın ki yok, ya da tersi.
+sudo nft list ruleset 2>/dev/null | grep -E '^table|NFQUEUE|queue (num|flags|to)' | head -30
+echo "--- kuyruga giden kural sayisi (0 ise firewall gercekten yok) ---"
+sudo nft list table inet zapret 2>/dev/null | grep -cE 'queue (num|flags|to)'
 command -v ufw >/dev/null && sudo ufw status 2>&1 | head -3
 
 echo; echo "================ 6. PAKET DAEMON'A ULAŞIYOR MU ================"

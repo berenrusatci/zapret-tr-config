@@ -70,14 +70,52 @@ Aynı ISP'de bile DPI her yerde aynı davranmıyor. İki hazır profil var:
 ile bulundu — o makinede varsayılan profil hiç iş görmüyordu. UDP blokları
 ikisinde de aynı (curl'de HTTP/3 yok, blockcheck QUIC'i test edemiyor).
 
+## DNS ayrı bir engel — `./fix-dns.sh`
+
+Bazı hatlarda DPI'ya **ek olarak** DNS de kaçırılıyor. Belirti:
+
+```bash
+dig +short discord.com          # -> 195.175.254.2  (TTNet blok sunucusu, gerçek IP değil)
+dig +short discord.com @8.8.8.8 # -> connection refused (53/UDP dışarı kapalı)
+```
+
+**Zapret DNS'e hiç dokunmaz.** Bu ayrı bir iş ve zapret çalışsa bile bu düzelmeden
+tarayıcıda Discord açılmaz — sistem hâlâ blok sunucusuna gider.
+
+```bash
+./fix-dns.sh          # 853 açıksa systemd-resolved+DoT, değilse dnscrypt-proxy (DoH/443)
+./fix-dns.sh --undo   # geri al
+```
+
+DNS'i DPI'dan ayırmak için, sistem DNS'ini baypas edip doğrudan gerçek IP'ye git:
+
+```bash
+curl -s -o /dev/null -m 10 -w 'discord -> %{http_code}\n' \
+  --resolve discord.com:443:162.159.137.232 https://discord.com/
+```
+
+`000` değilse DPI aşılmış, kalan tek sorun DNS'tir.
+
 ## Bu strateji sende çalışmayabilir
 
 Bu config **Türk Telekom'un DPI'ına karşı** ayarlandı. Başka bir ISP'de (veya TT
 davranışını değiştirdiğinde) hiçbir şey yapmayabilir. O durumda kendi stratejini bul:
 
 ```bash
+sudo systemctl stop zapret          # ÖNEMLİ — aşağıya bak
 sudo /opt/zapret/blockcheck.sh
+sudo systemctl start zapret
 ```
+
+> ⚠️ **blockcheck'i zapret KAPALIYKEN çalıştır.** Kendi `nfqws`'ini ve firewall kuralını
+> geçici olarak kendisi kurar, servise ihtiyacı yok. Servis açık kalırsa iki nfqws aynı
+> `qnum 200`'e biner; blockcheck'in "hiçbir strateji uygulanmadı" temel testi bile başarılı
+> görünür ve çalışmayan stratejiler `AVAILABLE` çıkar (yanlış pozitif).
+>
+> Ayrıca **önce DNS'i düzelt** (`./fix-dns.sh`) — bozuk DNS'le blockcheck blok sunucusunun
+> IP'sine karşı ölçüm yapar, sonuçlar çöp olur.
+
+Sorulara: domain `discord.com` · mod `standard` · TLS `1.2` · IPv6 `no`. 10-20 dk sürer.
 
 Çıktıda çalışan `--dpi-desync=...` kombinasyonunu `files/config` içindeki `NFQWS_OPT`
 bloklarına yazıp `./install.sh` tekrar çalıştır.
@@ -89,7 +127,16 @@ sudo systemctl status zapret.service    # servis durumu
 journalctl -u zapret.service -b         # bu açılıştaki loglar
 pgrep -a nfqws                          # süreç ve argümanları
 sudo nft list table inet zapret         # aktif kurallar (nftables modunda)
+
+# Kural gerçekten var mı — DOĞRU sayım:
+sudo nft list table inet zapret | grep -cE 'queue (num|flags|to)'
 ```
+
+> ⚠️ **İki yanlış negatif tuzağı** (31 Ağu 2026'da yaşandı, saatler yedi):
+> 1. `chain postrouting` **boş** görünür — gerçek kurallar `chain postnat` ve `chain prenat`
+>    içindedir. Sadece postrouting'e bakıp "kural yok" sanma.
+> 2. Kural metni `queue flags bypass to 200` şeklindedir, **`queue num` değil.**
+>    `grep "queue num"` sıfır döner ve kurulu sistemi bozuk sanırsın.
 
 **Her şey yavaşladı / bağlantı koptu:** `./uninstall.sh` çalıştır; düzeliyorsa strateji
 suçlu. **Sadece belirli site bozuk:** exclude listesine ekle. **Discord sesi yok:**
