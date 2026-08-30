@@ -34,8 +34,10 @@ else
 
   # 2a. Önce hazır ikili içeren son sürüm arşivini dene (derleyici gerekmez).
   info "Son sürüm arşivi aranıyor..."
+  # Not: release'te iki tarball var; "-openwrt-embedded" olanda init.d/systemd yok.
+  # Desen sürüm numarasından hemen sonra .tar.gz istiyor, embedded olanı elemek için.
   url="$(curl -fsSL https://api.github.com/repos/bol-van/zapret/releases/latest \
-        | grep -o 'https://[^"]*zapret-v[^"]*\.tar\.gz' | head -1 || true)"
+        | grep -oE 'https://[^"]*/zapret-v[0-9][0-9.]*\.tar\.gz' | head -1 || true)"
 
   installed=0
   if [[ -n "$url" ]]; then
@@ -43,6 +45,10 @@ else
     if curl -fsSL "$url" -o "$tmp/zapret.tar.gz"; then
       mkdir -p "$tmp/x" && tar -xzf "$tmp/zapret.tar.gz" -C "$tmp/x"
       src="$(find "$tmp/x" -maxdepth 2 -name install_bin.sh -printf '%h\n' | head -1)"
+      if [[ -n "$src" && ! -f "$src/init.d/systemd/zapret.service" ]]; then
+        warn "Arşivde systemd unit'i yok (embedded sürüm?), kaynaktan derlenecek."
+        src=""
+      fi
       if [[ -n "$src" ]]; then
         sudo mkdir -p "$ZAPRET_BASE"
         sudo cp -a "$src/." "$ZAPRET_BASE/"

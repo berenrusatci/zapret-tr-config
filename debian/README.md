@@ -4,8 +4,9 @@ Türkiye (Türk Telekom) için çalışan **zapret** yapılandırması — Disco
 Debian ve Ubuntu türevlerinde tek komutla kurulur.
 
 ```bash
-unzip zapret-tr-config-debian.zip
-cd zapret-tr-config-debian
+sudo apt install -y git
+git clone https://github.com/berenrusatci/zapret-tr-config.git
+cd zapret-tr-config/debian
 ./install.sh
 ```
 
@@ -25,6 +26,10 @@ Script sudo'yu kendisi ister; **root olarak çalıştırma.**
 5. systemd unit'ini `/etc/systemd/system/` altına kurar, enable eder, başlatır.
 
 Doğrulama: `./verify.sh` · Kapatma: `./uninstall.sh`
+
+zapret'i **yükseltmek** için: script `/opt/zapret/nfq/nfqws` varsa "zaten kurulu" deyip
+indirmeyi atlar. Yeni sürüme geçmek istiyorsan önce `sudo rm -rf /opt/zapret`, sonra
+`./install.sh`. (Config'in bu repoda duruyor, kaybolmaz.)
 
 ## Strateji
 
