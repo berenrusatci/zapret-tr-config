@@ -12,7 +12,13 @@ echo "---------------------"
 [[ -x /opt/zapret/nfq/nfqws ]] && ok "nfqws ikilisi var" || bad "/opt/zapret/nfq/nfqws yok"
 systemctl is-enabled --quiet zapret.service && ok "servis boot'ta etkin" || bad "servis boot'ta etkin değil"
 systemctl is-active  --quiet zapret.service && ok "servis çalışıyor"     || bad "servis çalışmıyor"
-pgrep --quiet nfqws && ok "nfqws süreci ayakta ($(pgrep -c nfqws) adet)" || bad "nfqws süreci yok"
+# Not: -q Arch'ın procps-ng'sinde, --quiet Ubuntu 24.04'ün procps'inde yok.
+# Çıktıyı yutmak her ikisinde de çalışan tek yol.
+if NFQ_N="$(pgrep -c nfqws 2>/dev/null)" && [[ ${NFQ_N:-0} -gt 0 ]]; then
+  ok "nfqws süreci ayakta ($NFQ_N adet)"
+else
+  bad "nfqws süreci yok"
+fi
 
 FW=$(grep -oP '^FWTYPE=\K.*' /opt/zapret/config 2>/dev/null)
 if [[ $FW == nftables ]]; then
