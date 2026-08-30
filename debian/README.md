@@ -57,6 +57,19 @@ yüklenmez, yani hiçbir şey olmaz. Sessiz hata.
 Yeni bir site zapret açıkken bozuluyorsa: alan adını
 `files/zapret-hosts-user-exclude.txt` dosyasına ekle, `./install.sh` tekrar çalıştır.
 
+## Profiller
+
+Aynı ISP'de bile DPI her yerde aynı davranmıyor. İki hazır profil var:
+
+| Komut | TCP 443 stratejisi | Ne zaman |
+| --- | --- | --- |
+| `./install.sh` | `fakeddisorder --split-pos=1 --autottl=-5` | varsayılan |
+| `./install.sh alt` | `multidisorder --split-pos=1` | varsayılan kurulu, servis ayakta, kurallar yerinde ama Discord hâlâ açılmıyorsa |
+
+`alt` profili 30 Ağu 2026'da Linux Mint 22.3 / Türk Telekom'da `blockcheck.sh`
+ile bulundu — o makinede varsayılan profil hiç iş görmüyordu. UDP blokları
+ikisinde de aynı (curl'de HTTP/3 yok, blockcheck QUIC'i test edemiyor).
+
 ## Bu strateji sende çalışmayabilir
 
 Bu config **Türk Telekom'un DPI'ına karşı** ayarlandı. Başka bir ISP'de (veya TT

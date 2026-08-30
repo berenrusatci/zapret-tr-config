@@ -7,6 +7,14 @@ ZAPRET_BASE=/opt/zapret
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
+# Opsiyonel profil: ./install.sh alt  ->  files/config.alt
+PROFILE="${1:-}"
+if [[ -n "$PROFILE" ]]; then
+  CONFIG_SRC="$REPO_DIR/files/config.$PROFILE"
+else
+  CONFIG_SRC="$REPO_DIR/files/config"
+fi
+
 c_red=$'\e[31m'; c_grn=$'\e[32m'; c_ylw=$'\e[33m'; c_rst=$'\e[0m'
 info() { printf '%s==>%s %s\n' "$c_grn" "$c_rst" "$*"; }
 warn() { printf '%s==>%s %s\n' "$c_ylw" "$c_rst" "$*"; }
@@ -16,6 +24,7 @@ die()  { printf '%s==>%s %s\n' "$c_red" "$c_rst" "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] && die "Bunu root olarak çalıştırma. Normal kullanıcı ol, sudo gerektiğinde kendisi sorar."
 command -v apt-get >/dev/null || die "apt-get yok — bu script Debian/Ubuntu içindir. Arch için üst dizindeki install.sh'yi kullan."
 command -v systemctl >/dev/null || die "systemd yok."
+[[ -f "$CONFIG_SRC" ]] || die "Profil bulunamadı: $CONFIG_SRC"
 
 info "sudo yetkisi isteniyor..."
 sudo -v
@@ -99,13 +108,13 @@ if ! command -v nft >/dev/null; then
 fi
 
 # --- 4. config'i yerleştir --------------------------------------------------
-if [[ -f "$ZAPRET_BASE/config" ]] && ! cmp -s "$REPO_DIR/files/config" "$ZAPRET_BASE/config"; then
+if [[ -f "$ZAPRET_BASE/config" ]] && ! cmp -s "$CONFIG_SRC" "$ZAPRET_BASE/config"; then
   info "Mevcut config yedekleniyor: config.bak-$STAMP"
   sudo cp -a "$ZAPRET_BASE/config" "$ZAPRET_BASE/config.bak-$STAMP"
 fi
-sudo install -m 644 "$REPO_DIR/files/config" "$ZAPRET_BASE/config"
+sudo install -m 644 "$CONFIG_SRC" "$ZAPRET_BASE/config"
 sudo sed -i "s/^FWTYPE=.*/FWTYPE=$FW/" "$ZAPRET_BASE/config"
-info "config yerleştirildi (FWTYPE=$FW)."
+info "config yerleştirildi: $(basename "$CONFIG_SRC") (FWTYPE=$FW)."
 
 EXC="$ZAPRET_BASE/ipset/zapret-hosts-user-exclude.txt"
 if [[ -f "$EXC" ]] && ! cmp -s "$REPO_DIR/files/zapret-hosts-user-exclude.txt" "$EXC"; then

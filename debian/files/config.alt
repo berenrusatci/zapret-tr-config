@@ -1,0 +1,39 @@
+# zapret v72 config - Türkiye / Türk Telekom - Discord - ALT PROFİL
+#
+# Ne zaman kullanılır: varsayılan profil (fakeddisorder + autottl=-5) kurulu,
+# servis "active", nftables kuralları yerinde ama Discord hâlâ açılmıyorsa.
+# Aynı ISP'nin farklı bölgelerinde DPI aynı davranmıyor.
+#
+# Kaynak: 30 Ağu 2026, Linux Mint 22.3 / Türk Telekom üzerinde blockcheck.sh
+# (standard, discord.com, TLS 1.2). O makinede varsayılan profil hiçbir şey
+# yapmıyordu; aşağıdaki multidisorder çalıştı.
+#
+# Kurulum:  ./install.sh alt
+
+FWTYPE=nftables
+MODE_FILTER=none
+NFQWS_ENABLE=1
+
+NFQWS_PORTS_TCP=443
+NFQWS_PORTS_UDP=443,50000-65535
+
+# TCP 443: blockcheck'te AVAILABLE çıkan en sağlam seçenek. TTL'e ve fooling'e
+# (ts / md5sig / badsum) bağlı değil, yani hop sayısı veya sunucu işletim
+# sistemi değişince bozulmaz. Alternatifi (o da AVAILABLE):
+#   --dpi-desync=multisplit --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
+#
+# UDP blokları varsayılan profille aynı: curl'de HTTP/3 desteği olmadığı için
+# blockcheck QUIC'i hiç test edemedi, dolayısıyla çalışan hâli değiştirmiyoruz.
+NFQWS_OPT="
+--filter-tcp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=multidisorder --dpi-desync-split-pos=1
+--new
+--filter-udp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic=/opt/zapret/files/fake/quic_initial_www_google_com.bin
+--new
+--filter-udp=50000-65535 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6
+"
+
+INIT_APPLY_FW=1
+NFQWS_TCP_PKT_OUT=9
+NFQWS_TCP_PKT_IN=3
+NFQWS_UDP_PKT_OUT=9
+NFQWS_UDP_PKT_IN=3
