@@ -26,10 +26,15 @@ sudo apt-get update -qq
 sudo apt-get install -y --no-install-recommends curl git ca-certificates nftables ipset iptables
 
 # --- 2. zapret'i getir ------------------------------------------------------
-if [[ -x "$ZAPRET_BASE/nfq/nfqws" ]]; then
+# Sadece nfqws'e bakmak yetmiyor: eski sürüm script embedded arşivi kurmuş olabilir,
+# o ağaçta systemd unit'i yok. İkisi birden yoksa yeniden kur.
+if [[ -x "$ZAPRET_BASE/nfq/nfqws" && -f "$ZAPRET_BASE/init.d/systemd/zapret.service" ]]; then
   info "zapret zaten kurulu: $ZAPRET_BASE"
 else
-  info "zapret bulunamadı, kuruluyor..."
+  if [[ -x "$ZAPRET_BASE/nfq/nfqws" ]]; then
+    warn "$ZAPRET_BASE var ama systemd unit'i eksik — ağaç yeniden kuruluyor."
+  fi
+  info "zapret kuruluyor..."
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 
   # 2a. Önce hazır ikili içeren son sürüm arşivini dene (derleyici gerekmez).
