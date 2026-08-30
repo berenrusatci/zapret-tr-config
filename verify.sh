@@ -11,7 +11,7 @@ echo "---------------------"
 
 systemctl is-enabled --quiet zapret.service && ok "servis boot'ta etkin" || bad "servis boot'ta etkin değil"
 systemctl is-active  --quiet zapret.service && ok "servis çalışıyor"     || bad "servis çalışmıyor"
-pgrep -q nfqws && ok "nfqws süreci ayakta ($(pgrep -c nfqws) adet)" || bad "nfqws süreci yok"
+pgrep --quiet nfqws && ok "nfqws süreci ayakta ($(pgrep -c nfqws) adet)" || bad "nfqws süreci yok"
 sudo nft list table inet zapret &>/dev/null && ok "nftables 'inet zapret' tablosu var" || bad "nftables tablosu yok"
 
 grep -q '^FWTYPE=nftables' /opt/zapret/config && ok "FWTYPE=nftables" || warn "FWTYPE nftables değil"
