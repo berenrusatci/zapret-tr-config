@@ -3,6 +3,9 @@
 Türkiye (Türk Telekom) için çalışan **zapret** yapılandırmam — Discord ses/görüntü dahil.
 Arch tabanlı sistemlerde (Arch, CachyOS, EndeavourOS, Manjaro) tek komutla kurulur.
 
+> **Debian / Ubuntu mu kullanıyorsun?** `debian/` klasörüne git — orada apt tabanlı,
+> zapret'i kaynaktan veya hazır ikiliden kuran ayrı bir sürüm var.
+
 ```bash
 git clone https://github.com/berenrusatci/zapret-tr-config.git
 cd zapret-tr-config

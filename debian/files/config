@@ -1,0 +1,29 @@
+# zapret v72 config - Türkiye / Türk Telekom - Discord
+# Firewall tipi (CachyOS nftables kullanır)
+FWTYPE=nftables
+
+# Hostlist kullanma, tüm TLS/QUIC trafiğine uygula (en güvenilir başlangıç)
+MODE_FILTER=none
+
+# nfqws'i etkinleştir (v72'de MODE=nfqws DEĞİL, bu değişken kullanılıyor)
+NFQWS_ENABLE=1
+
+# İşlenecek portlar
+NFQWS_PORTS_TCP=443
+NFQWS_PORTS_UDP=443,50000-65535
+
+# Stratejiler. --new ile ayrılır, her blok kendi filtresine uygulanır.
+NFQWS_OPT="
+--filter-tcp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=fakeddisorder --dpi-desync-split-pos=1 --dpi-desync-autottl=-5
+--new
+--filter-udp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic=/opt/zapret/files/fake/quic_initial_www_google_com.bin
+--new
+--filter-udp=50000-65535 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6
+"
+
+# Firewall kurallarini init script uygulasin (bu satir eksikti — 21 Agu 2026)
+INIT_APPLY_FW=1
+NFQWS_TCP_PKT_OUT=9
+NFQWS_TCP_PKT_IN=3
+NFQWS_UDP_PKT_OUT=9
+NFQWS_UDP_PKT_IN=3

@@ -1,0 +1,18 @@
+# Steam / Valve — zapret desync bunlari bozuyor
+steampowered.com
+steamcommunity.com
+steamstatic.com
+steamcontent.com
+steamusercontent.com
+steamserver.net
+steamgames.com
+steam-chat.com
+steamdeck.com
+valve.net
+valvesoftware.com
+akamaihd.net
+
+# WhatsApp / Meta - fakeddisorder ClientHello bozuyor, sunucu TLS decode error 562 doner (22 Agu 2026)
+whatsapp.com
+whatsapp.net
+fbcdn.net
