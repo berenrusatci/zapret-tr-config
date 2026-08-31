@@ -1,15 +1,28 @@
 # zapret v72 config - Türkiye / Türk Telekom - Discord - PROFİL TT3
 #
-# Ne zaman kullanılır: `config` (fakeddisorder+autottl) ve `config.alt`
-# (multidisorder --split-pos=1) denendi, ikisi de açmadı.
+# Ne zaman kullanılır: `config` ve `config.alt` denendi, ikisi de açmadı VE
+# hat kararsız (aynı curl arka arkaya bazen 200 bazen 000 veriyor).
 #
-# Kaynak: 31 Ağu 2026, Linux Mint 22.3 / Türk Telekom, blockcheck.sh
-# (standard · discord.com · TLS 1.2 + HTTP · IPv6 yok), zapret KAPALIYKEN.
+# Kaynak: 31 Ağu 2026, Linux Mint 22.3 / Türk Telekom.
+# İlk hâli blockcheck.sh (repeat=1) çıktısına dayanıyordu ve YANLIŞTI.
+# Şimdiki hâli `strategy-test.sh 10` ölçümüne dayanıyor:
 #
-# O çıktının kritik farkı: `multidisorder --split-pos=1` bu hatta
-# UNAVAILABLE. Tek başına hiçbir kısa split çalışmıyor — DPI ancak
-# ClientHello çok parçaya bölünüp ters sırada gönderilince kaçırıyor.
-# Bu yüzden config.alt bu makinede işe yaramaz, tam pozisyon listesi şart.
+#   TABAN (bypass kapalı)          0/10
+#   multidisorder-7pos             0/10     <- ilk tt3 buydu, hiç çalışmıyor
+#   multidisorder-1                1/10
+#   multisplit-seqovl-10           2/10
+#   multisplit-seqovl-10-midsld    4/10
+#   syndata-multisplit             3/10
+#   fakedsplit-altorder            4/10
+#   hostfakesplit-ttl3            10/10
+#   fake-ttl3                     10/10
+#   fake-badseq0                  10/10     <- seçilen
+#   fakedsplit-badseq0            10/10
+#   hostfakesplit-badseq0         10/10
+#
+# Ders: bu hatta SAF SPLIT AİLESİ ÖLÜ. DPI ClientHello'yu kaç parçaya bölersen
+# böl yakalıyor; onu ancak sahte bir paket yanıltıyor. blockcheck tek denemeyle
+# koşturulduğu için tam tersini söylemişti.
 #
 # Kurulum:  ./install.sh tt3
 
@@ -17,28 +30,28 @@ FWTYPE=nftables
 MODE_FILTER=none
 NFQWS_ENABLE=1
 
-# 80 eklendi: bu hatta düz HTTP de kesiliyor (blockcheck'te bypass'sız
-# "Recv failure"). Discord'un kendisi 443 kullanır, 80 diğer engelli
-# siteler için.
+# 80 dahil: bu hatta düz HTTP de kesiliyor (bypass'sız "Recv failure").
 NFQWS_PORTS_TCP=80,443
 NFQWS_PORTS_UDP=443,50000-65535
 
-# TCP 443 — blockcheck'te AVAILABLE çıkan, TTL'e ve fooling'e bağlı OLMAYAN
-# tek sağlam seçenek. (ttl=3, autottl=-1..-5, ts, md5sig, badseq de çalıştı
-# ama hepsi hop sayısına / sunucu OS'una / istemci TCP ayarına bağımlı —
-# ağ değişince sessizce bozulurlar, o yüzden tercih edilmedi.)
+# Neden badseq, neden ttl değil: iki aile de 10/10 çıktı, ama `--dpi-desync-ttl=3`
+# DPI'nın kaç hop ötede olduğunu varsayar. Makine başka bir ağa (farklı Wi-Fi,
+# telefon hotspot'u) geçtiğinde o sayı değişir ve strateji sessizce ölür.
+# badseq böyle bir varsayım taşımıyor: sahte paket geçersiz sequence numarasıyla
+# gidiyor, DPI'yı yanıltıyor, gerçek sunucu atıyor. Topolojiden bağımsız.
 #
-# Bu da açmazsa sıradaki adaylar (ikisi de AVAILABLE çıktı):
-#   --dpi-desync=multisplit --dpi-desync-split-pos=10,midsld --dpi-desync-split-seqovl=1
-#   --dpi-desync=syndata,multisplit --dpi-desync-split-pos=1
+# Neden `fake`, neden `fakedsplit` değil: fakedsplit de 10/10 ama ek olarak
+# gerçek paketi de bölüyor. Tabloda split'in tek başına hiçbir katkısı olmadığı
+# görülüyor (hepsi <=40%), yani o bölme bedava değil — TLS 1.3'ün büyük
+# ClientHello'suyla etkileşime girme riski taşıyor, karşılığında bir şey vermiyor.
 #
-# TCP 80 — HTTP tarafında `multidisorder --split-pos=midsld` AVAILABLE.
-# (`--hostspell=hoSt` de çalışıyor ve daha ucuz, ama Host başlığını
-# bozduğu için bazı sunucular/CDN'ler 400 döndürebilir; split daha nötr.)
+# Bu bozulursa sıradaki adaylar (ikisi de 10/10 ölçüldü):
+#   --dpi-desync=fakedsplit --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=0 --dpi-desync-split-pos=1
+#   --dpi-desync=hostfakesplit --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=0
 NFQWS_OPT="
---filter-tcp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
+--filter-tcp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=0
 --new
---filter-tcp=80 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=multidisorder --dpi-desync-split-pos=midsld
+--filter-tcp=80 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=0
 --new
 --filter-udp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic=/opt/zapret/files/fake/quic_initial_www_google_com.bin
 --new

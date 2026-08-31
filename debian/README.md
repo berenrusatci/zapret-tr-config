@@ -66,21 +66,36 @@ sırayla dene:
 | --- | --- | --- |
 | `./install.sh` | `fakeddisorder --split-pos=1 --autottl=-5` | varsayılan |
 | `./install.sh alt` | `multidisorder --split-pos=1` | varsayılan kurulu, servis ayakta, kurallar yerinde ama Discord hâlâ açılmıyorsa |
-| `./install.sh tt3` | `multidisorder --split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1` | ilk ikisi de açmıyorsa; TCP 80'i de kapsar |
+| `./install.sh tt3` | `fake --fooling=badseq --badseq-increment=0` | ilk ikisi de açmıyorsa, özellikle hat kararsızsa; TCP 80'i de kapsar |
 
-`alt` profili 30 Ağu 2026'da, `tt3` 31 Ağu 2026'da — ikisi de Linux Mint 22.3 /
-Türk Telekom'da `blockcheck.sh` ile bulundu. İki makine aynı ISP'de olmasına
-rağmen `tt3`'ün çıktığı hatta `alt`'ın stratejisi (`--split-pos=1`) UNAVAILABLE:
-o DPI ancak ClientHello yedi yere bölünüp ters sırada gönderilince kaçırıyor.
-`tt3` ayrıca düz HTTP'yi (TCP 80) da işliyor, o hatta 80 de kesiliyordu.
-
+`alt` 30 Ağu 2026, `tt3` 31 Ağu 2026 — ikisi de Linux Mint 22.3 / Türk Telekom.
 UDP blokları üçünde de aynı (curl'de HTTP/3 yok, blockcheck QUIC'i test edemiyor).
+`tt3` ayrıca düz HTTP'yi (TCP 80) de işliyor, o hatta 80 de kesiliyordu.
 
-**Fooling/TTL tabanlı stratejileri seçmedik.** blockcheck'te `ttl=3`,
-`autottl=-1..-5`, `ts`, `md5sig`, `badseq` de AVAILABLE çıkabiliyor; ama bunlar
-hop sayısına, karşı sunucunun işletim sistemine ya da istemcinin TCP timestamp
-ayarına bağlı. Ağ değişince sessizce bozulurlar. Saf split stratejileri böyle
-bir bağımlılık taşımaz — eşit koşulda onları tercih et.
+### İki aile var, aynı ISP'de bile hangisinin tutacağı belli değil
+
+- **Saf split** (`multisplit`, `multidisorder`, `syndata`) — gerçek paketi böler,
+  sahte paket üretmez. Hiçbir topoloji ya da sunucu varsayımı yok.
+- **Sahte paket** (`fake`, `fakedsplit`, `hostfakesplit` + `ttl` / `fooling`) —
+  DPI'ya yutturulacak, gerçek sunucunun atacağı bir paket gönderir.
+
+`config` ve `config.alt` split ailesinden, `tt3` sahte paket ailesinden.
+`tt3`'ün çıktığı hatta split ailesinin **tamamı** ölçümde 40%'ın altında kaldı;
+sahte paket ailesinin tamamı 10/10 yaptı. Tersi de olabilir. Aile seçimini
+tahminle değil ölçümle yap — `strategy-test.sh` ikisini birden dener.
+
+**Sahte paket ailesinde alt seçim önemli.** Hepsi eşit dayanıklı değil:
+
+| Yöntem | Neye bağımlı | Ne zaman bozulur |
+| --- | --- | --- |
+| `--dpi-desync-ttl=N`, `--dpi-desync-autottl` | DPI'ya hop sayısı | başka ağa geçince (farklı Wi-Fi, hotspot) |
+| `--dpi-desync-fooling=ts` | istemcide TCP timestamp açık olması | Windows'ta varsayılan kapalı |
+| `--dpi-desync-fooling=md5sig` | karşı sunucunun OS'u | Linux dışı sunucularda |
+| `--dpi-desync-fooling=badsum` | ara cihazların bozuk checksum'ı düşürmemesi | bazı NAT/router'larda |
+| **`--dpi-desync-fooling=badseq --dpi-desync-badseq-increment=0`** | **hiçbiri** | — |
+
+Eşit skorda `badseq` seç. `ttl` cazip görünür çünkü blockcheck'te sık AVAILABLE
+çıkar, ama taşınabilir değildir.
 
 ## DPI kararsızsa — `./strategy-test.sh`
 
