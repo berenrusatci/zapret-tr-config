@@ -82,6 +82,29 @@ hop sayısına, karşı sunucunun işletim sistemine ya da istemcinin TCP timest
 ayarına bağlı. Ağ değişince sessizce bozulurlar. Saf split stratejileri böyle
 bir bağımlılık taşımaz — eşit koşulda onları tercih et.
 
+## DPI kararsızsa — `./strategy-test.sh`
+
+Belirti: aynı komut arka arkaya bazen `200` bazen `000` veriyor. Bu bir kurulum
+hatası değil, DPI'nın kararsız davranması (birden fazla DPI kutusu ya da yük
+dengeleme). Böyle bir hatta **blockcheck yanıltır**, çünkü her stratejiyi
+varsayılan olarak bir kez dener: çalışmayan strateji `AVAILABLE`, çalışan
+strateji `UNAVAILABLE` çıkabilir.
+
+```bash
+sudo ./strategy-test.sh 10 discord.com
+```
+
+Adayları sırayla kurar, her birini 10 kez ölçer, yüzde verir. Başta bypass'ı
+kapatıp bir taban ölçümü alır — taban zaten sıfır değilse engel kısmi demektir
+ve skorları ona göre okumak gerekir. Çıkarken config'i geri yükler (Ctrl-C dahil).
+
+TLS 1.2 zorlar, bilerek: blockcheck'in kuralı, **1.2'de geçen 1.3'te de geçer,
+tersi geçerli değil.** TLS 1.3'ün şifreli ServerHello'su zayıf stratejileri de
+bazen geçirdiği için 1.3'e bakıp "çalışıyor" demek yanıltıcıdır.
+
+Alternatif: `blockcheck.sh`'yi tekrar sayısı sorusunda **3 veya 5** vererek koş.
+Daha yavaş ama gürültüyü aynı şekilde eler.
+
 ## DNS ayrı bir engel — `./fix-dns.sh`
 
 Bazı hatlarda DPI'ya **ek olarak** DNS de kaçırılıyor. Belirti:
