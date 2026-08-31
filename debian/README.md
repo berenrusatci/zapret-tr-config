@@ -59,16 +59,28 @@ Yeni bir site zapret açıkken bozuluyorsa: alan adını
 
 ## Profiller
 
-Aynı ISP'de bile DPI her yerde aynı davranmıyor. İki hazır profil var:
+Aynı ISP'de bile DPI her yerde aynı davranmıyor. Üç hazır profil var,
+sırayla dene:
 
 | Komut | TCP 443 stratejisi | Ne zaman |
 | --- | --- | --- |
 | `./install.sh` | `fakeddisorder --split-pos=1 --autottl=-5` | varsayılan |
 | `./install.sh alt` | `multidisorder --split-pos=1` | varsayılan kurulu, servis ayakta, kurallar yerinde ama Discord hâlâ açılmıyorsa |
+| `./install.sh tt3` | `multidisorder --split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1` | ilk ikisi de açmıyorsa; TCP 80'i de kapsar |
 
-`alt` profili 30 Ağu 2026'da Linux Mint 22.3 / Türk Telekom'da `blockcheck.sh`
-ile bulundu — o makinede varsayılan profil hiç iş görmüyordu. UDP blokları
-ikisinde de aynı (curl'de HTTP/3 yok, blockcheck QUIC'i test edemiyor).
+`alt` profili 30 Ağu 2026'da, `tt3` 31 Ağu 2026'da — ikisi de Linux Mint 22.3 /
+Türk Telekom'da `blockcheck.sh` ile bulundu. İki makine aynı ISP'de olmasına
+rağmen `tt3`'ün çıktığı hatta `alt`'ın stratejisi (`--split-pos=1`) UNAVAILABLE:
+o DPI ancak ClientHello yedi yere bölünüp ters sırada gönderilince kaçırıyor.
+`tt3` ayrıca düz HTTP'yi (TCP 80) da işliyor, o hatta 80 de kesiliyordu.
+
+UDP blokları üçünde de aynı (curl'de HTTP/3 yok, blockcheck QUIC'i test edemiyor).
+
+**Fooling/TTL tabanlı stratejileri seçmedik.** blockcheck'te `ttl=3`,
+`autottl=-1..-5`, `ts`, `md5sig`, `badseq` de AVAILABLE çıkabiliyor; ama bunlar
+hop sayısına, karşı sunucunun işletim sistemine ya da istemcinin TCP timestamp
+ayarına bağlı. Ağ değişince sessizce bozulurlar. Saf split stratejileri böyle
+bir bağımlılık taşımaz — eşit koşulda onları tercih et.
 
 ## DNS ayrı bir engel — `./fix-dns.sh`
 

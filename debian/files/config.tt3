@@ -1,0 +1,52 @@
+# zapret v72 config - Türkiye / Türk Telekom - Discord - PROFİL TT3
+#
+# Ne zaman kullanılır: `config` (fakeddisorder+autottl) ve `config.alt`
+# (multidisorder --split-pos=1) denendi, ikisi de açmadı.
+#
+# Kaynak: 31 Ağu 2026, Linux Mint 22.3 / Türk Telekom, blockcheck.sh
+# (standard · discord.com · TLS 1.2 + HTTP · IPv6 yok), zapret KAPALIYKEN.
+#
+# O çıktının kritik farkı: `multidisorder --split-pos=1` bu hatta
+# UNAVAILABLE. Tek başına hiçbir kısa split çalışmıyor — DPI ancak
+# ClientHello çok parçaya bölünüp ters sırada gönderilince kaçırıyor.
+# Bu yüzden config.alt bu makinede işe yaramaz, tam pozisyon listesi şart.
+#
+# Kurulum:  ./install.sh tt3
+
+FWTYPE=nftables
+MODE_FILTER=none
+NFQWS_ENABLE=1
+
+# 80 eklendi: bu hatta düz HTTP de kesiliyor (blockcheck'te bypass'sız
+# "Recv failure"). Discord'un kendisi 443 kullanır, 80 diğer engelli
+# siteler için.
+NFQWS_PORTS_TCP=80,443
+NFQWS_PORTS_UDP=443,50000-65535
+
+# TCP 443 — blockcheck'te AVAILABLE çıkan, TTL'e ve fooling'e bağlı OLMAYAN
+# tek sağlam seçenek. (ttl=3, autottl=-1..-5, ts, md5sig, badseq de çalıştı
+# ama hepsi hop sayısına / sunucu OS'una / istemci TCP ayarına bağımlı —
+# ağ değişince sessizce bozulurlar, o yüzden tercih edilmedi.)
+#
+# Bu da açmazsa sıradaki adaylar (ikisi de AVAILABLE çıktı):
+#   --dpi-desync=multisplit --dpi-desync-split-pos=10,midsld --dpi-desync-split-seqovl=1
+#   --dpi-desync=syndata,multisplit --dpi-desync-split-pos=1
+#
+# TCP 80 — HTTP tarafında `multidisorder --split-pos=midsld` AVAILABLE.
+# (`--hostspell=hoSt` de çalışıyor ve daha ucuz, ama Host başlığını
+# bozduğu için bazı sunucular/CDN'ler 400 döndürebilir; split daha nötr.)
+NFQWS_OPT="
+--filter-tcp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
+--new
+--filter-tcp=80 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=multidisorder --dpi-desync-split-pos=midsld
+--new
+--filter-udp=443 --hostlist-exclude=/opt/zapret/ipset/zapret-hosts-user-exclude.txt --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic=/opt/zapret/files/fake/quic_initial_www_google_com.bin
+--new
+--filter-udp=50000-65535 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6
+"
+
+INIT_APPLY_FW=1
+NFQWS_TCP_PKT_OUT=9
+NFQWS_TCP_PKT_IN=3
+NFQWS_UDP_PKT_OUT=9
+NFQWS_UDP_PKT_IN=3
